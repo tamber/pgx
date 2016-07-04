@@ -84,11 +84,59 @@ func NewConnPool(config ConnPoolConfig) (p *ConnPool, err error) {
 	return
 }
 
+// NewConfig resets the ConnPool with a new configuration, similar to NewConnPoll
+func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	p.config = config.ConnConfig
+	p.maxConnections = config.MaxConnections
+	if p.maxConnections == 0 {
+		p.maxConnections = 5
+	}
+	if p.maxConnections < 1 {
+		return nil, errors.New("MaxConnections must be at least 1")
+	}
+	p.acquireTimeout = config.AcquireTimeout
+	if p.acquireTimeout < 0 {
+		return nil, errors.New("AcquireTimeout must be equal to or greater than 0")
+	}
+
+	p.afterConnect = config.AfterConnect
+
+	if config.LogLevel != 0 {
+		p.logLevel = config.LogLevel
+	} else {
+		// Preserve pre-LogLevel behavior by defaulting to LogLevelDebug
+		p.logLevel = LogLevelDebug
+	}
+	p.logger = config.Logger
+	if p.logger == nil {
+		p.logLevel = LogLevelNone
+	}
+	p.pgsql_af_inet = nil
+	p.pgsql_af_inet6 = nil
+
+	p.resetCount++
+	p.allConnections = make([]*Conn, 0, p.maxConnections)
+	p.availableConnections = make([]*Conn, 0, p.maxConnections)
+
+	// Initially establish one connection
+	var c *Conn
+	c, err = p.createConnection()
+	if err != nil {
+		return
+	}
+	p.allConnections = append(p.allConnections, c)
+	p.availableConnections = append(p.availableConnections, c)
+
+	return
+}
+
 // Acquire takes exclusive use of a connection until it is released.
 func (p *ConnPool) Acquire() (*Conn, error) {
 	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 	c, err := p.acquire(nil)
-	p.cond.L.Unlock()
 	return c, err
 }
 
