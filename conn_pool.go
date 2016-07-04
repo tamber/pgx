@@ -94,11 +94,11 @@ func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 		p.maxConnections = 5
 	}
 	if p.maxConnections < 1 {
-		return nil, errors.New("MaxConnections must be at least 1")
+		return errors.New("MaxConnections must be at least 1")
 	}
 	p.acquireTimeout = config.AcquireTimeout
 	if p.acquireTimeout < 0 {
-		return nil, errors.New("AcquireTimeout must be equal to or greater than 0")
+		return errors.New("AcquireTimeout must be equal to or greater than 0")
 	}
 
 	p.afterConnect = config.AfterConnect
