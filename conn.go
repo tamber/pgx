@@ -913,6 +913,8 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 		switch arg := arguments[i].(type) {
 		case Encoder:
 			wbuf.WriteInt16(arg.FormatCode())
+		case []byte:
+			wbuf.WriteInt16(BinaryFormatCode)
 		case string, *string:
 			wbuf.WriteInt16(TextFormatCode)
 		default:

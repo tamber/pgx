@@ -2,6 +2,8 @@ package pgx
 
 import (
 	"errors"
+	// "fmt"
+	// "strings"
 	"sync"
 	"time"
 )
@@ -84,7 +86,7 @@ func NewConnPool(config ConnPoolConfig) (p *ConnPool, err error) {
 	return
 }
 
-// NewConfig resets the ConnPool with a new configuration, similar to NewConnPoll
+// NewConfig resets the ConnPool with a new configuration, similar to NewConnPool
 func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -115,6 +117,18 @@ func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 	}
 	p.pgsql_af_inet = nil
 	p.pgsql_af_inet6 = nil
+
+	// TODO: Try closing all active connections.
+	// Wait until all connections are released
+	// if len(p.availableConnections) != len(p.allConnections) {
+	// 	for len(p.availableConnections) != len(p.allConnections) {
+	// 		p.cond.Wait()
+	// 	}
+	// }
+
+	// for _, c := range p.allConnections {
+	// 	_ = c.Close()
+	// }
 
 	p.resetCount++
 	p.allConnections = make([]*Conn, 0, p.maxConnections)
@@ -321,6 +335,64 @@ func (p *ConnPool) createConnection() (*Conn, error) {
 
 	return c, nil
 }
+
+// func (p *ConnPool) Failover(maxRetries int, work func(tx *Tx) error, handleMasterFailure func()) error {
+
+// }
+// func (p *ConnPool) Failover(maxRetries int, tx *Tx, work func(tx *Tx) error, handleMasterFailure func()) error {
+// 	// conn, err := p.Acquire()
+
+// 	failedCon := false
+// 	switch e := err.(type) {
+// 	case PgError:
+// 		if e.Code[:2] == "08" || e.Code == "57P03" {
+// 			failedCon = true
+// 		}
+// 	default:
+// 		switch err {
+// 		case ErrDeadConn, pgx.ErrTLSRefused, pgx.ErrTxClosed:
+// 			failedCon = true
+// 		}
+// 	}
+// 	if failedCon {
+// 		handleMasterFailure()
+// 		if maxRetries > 0 {
+// 			p.logger.Warn(fmt.Printf("%v, try acquiring a non-dead connection", err))
+// 			return p.Failover(maxRetries-1, work)
+// 		}
+// 	}
+// 	// if err == ErrDeadConn, pgx.ErrTLSRefused, pgx.ErrTxClosed{
+// 	// 	if maxRetries > 0 {
+// 	// 		p.logger.Warn(fmt.Printf("%v, try acquiring a non-dead connection", err))
+// 	// 		return p.Failover(maxRetries-1, work)
+// 	// 	}
+// 	// }
+
+// 	// abort if still err
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// defer p.Release(conn)
+
+// 	// use the connection
+// 	err = work(tx)
+
+// 	// all ok?
+// 	if err == nil {
+// 		return nil
+// 	}
+
+// 	// if not, can we retry?
+// 	canRetry := (strings.HasSuffix(err.Error(), "broken pipe") ||
+// 		strings.HasSuffix(err.Error(), "EOF"))
+
+// 	if canRetry && maxRetries > 0 {
+// 		p.logger.Warn(fmt.Printf("failed to do work with connection because:[%v], retry:%d", err, maxRetries))
+// 		return p.Failover(maxRetries-1, work)
+// 	}
+// 	// give up
+// 	return err
+// }
 
 // Exec acquires a connection, delegates the call to that connection, and releases the connection
 func (p *ConnPool) Exec(sql string, arguments ...interface{}) (commandTag CommandTag, err error) {
