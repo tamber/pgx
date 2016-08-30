@@ -946,6 +946,8 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 		wbuf.WriteInt16(fd.FormatCode)
 	}
 
+	wbuf.WriteInt16(0)
+
 	wbuf.startMsg('D')
 	wbuf.WriteByte('P')
 	wbuf.WriteByte(0)
