@@ -441,6 +441,13 @@ func (c *Conn) Query(sql string, args ...interface{}) (*Rows, error) {
 	rows.unlockConn = true
 
 	ps, ok := c.preparedStatements[sql]
+	// if !ok {
+	// 	err := c.sendBinaryModeQuery(ps, args...)
+	// 	if err != nil {
+	// 		rows.abort(err)
+	// 	}
+	// 	return rows, rows.err
+	// }
 	if !ok {
 		var err error
 		ps, err = c.Prepare("", sql)

@@ -898,30 +898,93 @@ func (c *Conn) sendSimpleQuery(sql string, args ...interface{}) error {
 	return c.sendPreparedQuery(ps, args...)
 }
 
+// func (c *Conn) sendBinaryModeQuery(query string, arguments ...interface{}) (err error) {
+// 	// if len(ps.ParameterOids) != len(arguments) {
+// 	// 	return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
+// 	// }
+// 	if len(arguments) >= 65536 {
+// 		return fmt.Errorf("got %d parameters but PostgreSQL only supports 65535 parameters", len(arguments))
+// 	}
+
+// 	// bind
+// 	wbuf := newWriteBuf(c, 'P')
+// 	wbuf.WriteByte(0) // unnamed statement
+// 	wbuf.WriteCString(ps.SQL)
+// 	wbuf.WriteByte(0)
+
+// 	wbuf.startMsg('B')
+// 	wbuf.WriteInt16(0) // unnamed portal and statement
+
+// 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
+
+// 	for i, oid := range ps.ParameterOids {
+// 		switch arg := arguments[i].(type) {
+// 		case Encoder:
+// 			wbuf.WriteInt16(arg.FormatCode())
+// 		case []byte:
+// 			wbuf.WriteInt16(BinaryFormatCode)
+// 		case string, *string:
+// 			wbuf.WriteInt16(TextFormatCode)
+// 		default:
+// 			switch oid {
+// 			case BoolOid, ByteaOid, Int2Oid, Int4Oid, Int8Oid, Float4Oid, Float8Oid, TimestampTzOid, TimestampTzArrayOid, TimestampOid, TimestampArrayOid, DateOid, BoolArrayOid, ByteaArrayOid, Int2ArrayOid, Int4ArrayOid, Int8ArrayOid, Float4ArrayOid, Float8ArrayOid, TextArrayOid, VarcharArrayOid, OidOid, InetOid, CidrOid, InetArrayOid, CidrArrayOid, RecordOid:
+// 				wbuf.WriteInt16(BinaryFormatCode)
+// 			default:
+// 				wbuf.WriteInt16(TextFormatCode)
+// 			}
+// 		}
+// 	}
+
+// 	wbuf.WriteInt16(int16(len(arguments)))
+// 	for i, oid := range ps.ParameterOids {
+// 		if err := Encode(wbuf, oid, arguments[i]); err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	// wbuf.WriteInt16(int16(len(ps.FieldDescriptions)))
+// 	// for _, fd := range ps.FieldDescriptions {
+// 	// 	wbuf.WriteInt16(fd.FormatCode)
+// 	// }
+
+// 	wbuf.WriteInt16(0)
+
+// 	wbuf.startMsg('D')
+// 	wbuf.WriteByte('P')
+// 	wbuf.WriteByte(0)
+
+// 	// execute
+// 	wbuf.startMsg('E')
+// 	wbuf.WriteByte(0)
+// 	wbuf.WriteInt32(0)
+
+// 	// sync
+// 	wbuf.startMsg('S')
+// 	wbuf.closeMsg()
+
+// 	_, err = c.conn.Write(wbuf.buf)
+// 	if err != nil {
+// 		c.die(err)
+// 	}
+
+// 	return err
+// }
+
 func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}) (err error) {
-	// if len(ps.ParameterOids) != len(arguments) {
-	// 	return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
-	// }
-	if len(arguments) >= 65536 {
-		return fmt.Errorf("got %d parameters but PostgreSQL only supports 65535 parameters", len(arguments))
+	if len(ps.ParameterOids) != len(arguments) {
+		return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
 	}
 
 	// bind
-	wbuf := newWriteBuf(c, 'P')
-	wbuf.WriteByte(0) // unnamed statement
-	wbuf.WriteCString(ps.SQL)
+	wbuf := newWriteBuf(c, 'B')
 	wbuf.WriteByte(0)
-
-	wbuf.startMsg('B')
-	wbuf.WriteInt16(0) // unnamed portal and statement
+	wbuf.WriteCString(ps.Name)
 
 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
 	for i, oid := range ps.ParameterOids {
 		switch arg := arguments[i].(type) {
 		case Encoder:
 			wbuf.WriteInt16(arg.FormatCode())
-		case []byte:
-			wbuf.WriteInt16(BinaryFormatCode)
 		case string, *string:
 			wbuf.WriteInt16(TextFormatCode)
 		default:
@@ -946,12 +1009,6 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 		wbuf.WriteInt16(fd.FormatCode)
 	}
 
-	wbuf.WriteInt16(0)
-
-	wbuf.startMsg('D')
-	wbuf.WriteByte('P')
-	wbuf.WriteByte(0)
-
 	// execute
 	wbuf.startMsg('E')
 	wbuf.WriteByte(0)
@@ -968,62 +1025,6 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 
 	return err
 }
-
-// func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}) (err error) {
-// 	if len(ps.ParameterOids) != len(arguments) {
-// 		return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
-// 	}
-
-// 	// bind
-// 	wbuf := newWriteBuf(c, 'B')
-// 	wbuf.WriteByte(0)
-// 	wbuf.WriteCString(ps.Name)
-
-// 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
-// 	for i, oid := range ps.ParameterOids {
-// 		switch arg := arguments[i].(type) {
-// 		case Encoder:
-// 			wbuf.WriteInt16(arg.FormatCode())
-// 		case string, *string:
-// 			wbuf.WriteInt16(TextFormatCode)
-// 		default:
-// 			switch oid {
-// 			case BoolOid, ByteaOid, Int2Oid, Int4Oid, Int8Oid, Float4Oid, Float8Oid, TimestampTzOid, TimestampTzArrayOid, TimestampOid, TimestampArrayOid, DateOid, BoolArrayOid, ByteaArrayOid, Int2ArrayOid, Int4ArrayOid, Int8ArrayOid, Float4ArrayOid, Float8ArrayOid, TextArrayOid, VarcharArrayOid, OidOid, InetOid, CidrOid, InetArrayOid, CidrArrayOid, RecordOid:
-// 				wbuf.WriteInt16(BinaryFormatCode)
-// 			default:
-// 				wbuf.WriteInt16(TextFormatCode)
-// 			}
-// 		}
-// 	}
-
-// 	wbuf.WriteInt16(int16(len(arguments)))
-// 	for i, oid := range ps.ParameterOids {
-// 		if err := Encode(wbuf, oid, arguments[i]); err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	wbuf.WriteInt16(int16(len(ps.FieldDescriptions)))
-// 	for _, fd := range ps.FieldDescriptions {
-// 		wbuf.WriteInt16(fd.FormatCode)
-// 	}
-
-// 	// execute
-// 	wbuf.startMsg('E')
-// 	wbuf.WriteByte(0)
-// 	wbuf.WriteInt32(0)
-
-// 	// sync
-// 	wbuf.startMsg('S')
-// 	wbuf.closeMsg()
-
-// 	_, err = c.conn.Write(wbuf.buf)
-// 	if err != nil {
-// 		c.die(err)
-// 	}
-
-// 	return err
-// }
 
 // Exec executes sql. sql can be either a prepared statement name or an SQL string.
 // arguments should be referenced positionally from the sql string as $1, $2, etc.
