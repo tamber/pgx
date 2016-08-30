@@ -642,8 +642,12 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 	wbuf.WriteByte('S')
 	wbuf.WriteCString(name)
 
-	// sync
-	wbuf.startMsg('S')
+	// // sync
+	// wbuf.startMsg('S')
+	// wbuf.closeMsg()
+
+	// flush
+	wbuf.startMsg('H')
 	wbuf.closeMsg()
 
 	_, err = c.conn.Write(wbuf.buf)
@@ -899,9 +903,6 @@ func (c *Conn) sendSimpleQuery(sql string, args ...interface{}) error {
 }
 
 // func (c *Conn) sendBinaryModeQuery(query string, arguments ...interface{}) (err error) {
-// 	// if len(ps.ParameterOids) != len(arguments) {
-// 	// 	return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
-// 	// }
 // 	if len(arguments) >= 65536 {
 // 		return fmt.Errorf("got %d parameters but PostgreSQL only supports 65535 parameters", len(arguments))
 // 	}
@@ -909,38 +910,68 @@ func (c *Conn) sendSimpleQuery(sql string, args ...interface{}) error {
 // 	// bind
 // 	wbuf := newWriteBuf(c, 'P')
 // 	wbuf.WriteByte(0) // unnamed statement
-// 	wbuf.WriteCString(ps.SQL)
+// 	wbuf.WriteCString(query)
 // 	wbuf.WriteByte(0)
 
 // 	wbuf.startMsg('B')
 // 	wbuf.WriteInt16(0) // unnamed portal and statement
 
-// 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
-
-// 	for i, oid := range ps.ParameterOids {
-// 		switch arg := arguments[i].(type) {
-// 		case Encoder:
-// 			wbuf.WriteInt16(arg.FormatCode())
-// 		case []byte:
-// 			wbuf.WriteInt16(BinaryFormatCode)
-// 		case string, *string:
-// 			wbuf.WriteInt16(TextFormatCode)
-// 		default:
-// 			switch oid {
-// 			case BoolOid, ByteaOid, Int2Oid, Int4Oid, Int8Oid, Float4Oid, Float8Oid, TimestampTzOid, TimestampTzArrayOid, TimestampOid, TimestampArrayOid, DateOid, BoolArrayOid, ByteaArrayOid, Int2ArrayOid, Int4ArrayOid, Int8ArrayOid, Float4ArrayOid, Float8ArrayOid, TextArrayOid, VarcharArrayOid, OidOid, InetOid, CidrOid, InetArrayOid, CidrArrayOid, RecordOid:
-// 				wbuf.WriteInt16(BinaryFormatCode)
-// 			default:
-// 				wbuf.WriteInt16(TextFormatCode)
+// 	var paramFormats []int
+// 	for i, x := range args {
+// 		_, ok := x.([]byte)
+// 		if ok {
+// 			if paramFormats == nil {
+// 				paramFormats = make([]int, len(args))
 // 			}
+// 			paramFormats[i] = 1
+// 		}
+// 	}
+// 	if paramFormats == nil {
+// 		wbuf.WriteInt16(0)
+// 	} else {
+// 		wbuf.WriteInt16(len(paramFormats))
+// 		for _, x := range paramFormats {
+// 			wbuf.WriteInt16(x)
 // 		}
 // 	}
 
-// 	wbuf.WriteInt16(int16(len(arguments)))
-// 	for i, oid := range ps.ParameterOids {
-// 		if err := Encode(wbuf, oid, arguments[i]); err != nil {
-// 			return err
+// 	wbuf.WriteInt16(len(args))
+// 	for _, x := range args {
+// 		if x == nil {
+// 			b.int32(-1)
+// 		} else {
+// 			datum := binaryEncode(&cn.parameterStatus, x)
+// 			wbuf.WriteInt32(len(datum))
+// 			wbuf.WriteBytes(datum)
 // 		}
 // 	}
+
+// 	// wbuf.WriteInt16(int16(len(ps.ParameterOids)))
+
+// 	// for i, oid := range ps.ParameterOids {
+// 	// 	switch arg := arguments[i].(type) {
+// 	// 	case Encoder:
+// 	// 		wbuf.WriteInt16(arg.FormatCode())
+// 	// 	case []byte:
+// 	// 		wbuf.WriteInt16(BinaryFormatCode)
+// 	// 	case string, *string:
+// 	// 		wbuf.WriteInt16(TextFormatCode)
+// 	// 	default:
+// 	// 		switch oid {
+// 	// 		case BoolOid, ByteaOid, Int2Oid, Int4Oid, Int8Oid, Float4Oid, Float8Oid, TimestampTzOid, TimestampTzArrayOid, TimestampOid, TimestampArrayOid, DateOid, BoolArrayOid, ByteaArrayOid, Int2ArrayOid, Int4ArrayOid, Int8ArrayOid, Float4ArrayOid, Float8ArrayOid, TextArrayOid, VarcharArrayOid, OidOid, InetOid, CidrOid, InetArrayOid, CidrArrayOid, RecordOid:
+// 	// 			wbuf.WriteInt16(BinaryFormatCode)
+// 	// 		default:
+// 	// 			wbuf.WriteInt16(TextFormatCode)
+// 	// 		}
+// 	// 	}
+// 	// }
+
+// 	// wbuf.WriteInt16(int16(len(arguments)))
+// 	// for i, oid := range ps.ParameterOids {
+// 	// 	if err := Encode(wbuf, oid, arguments[i]); err != nil {
+// 	// 		return err
+// 	// 	}
+// 	// }
 
 // 	// wbuf.WriteInt16(int16(len(ps.FieldDescriptions)))
 // 	// for _, fd := range ps.FieldDescriptions {
