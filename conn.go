@@ -645,16 +645,20 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 	// // sync
 	// wbuf.startMsg('S')
 	// wbuf.closeMsg()
+	fmt.Println("pre flush")
 
 	// flush
 	wbuf.startMsg('H')
 	wbuf.closeMsg()
+
+	fmt.Println("post flush")
 
 	_, err = c.conn.Write(wbuf.buf)
 	if err != nil {
 		c.die(err)
 		return nil, err
 	}
+	fmt.Println("post write")
 
 	ps = &PreparedStatement{Name: name, SQL: sql}
 
@@ -683,6 +687,7 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 				ps.FieldDescriptions[i].DataTypeName = t.Name
 				ps.FieldDescriptions[i].FormatCode = t.DefaultFormat
 			}
+			return ps, nil
 		case noData:
 		case readyForQuery:
 			c.rxReadyForQuery(r)
@@ -692,6 +697,9 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 			}
 
 			return ps, softErr
+		case closeComplete:
+			fmt.Println("")
+			return ps, nil
 		default:
 			if e := c.processContextFreeMsg(t, r); e != nil && softErr == nil {
 				softErr = e
