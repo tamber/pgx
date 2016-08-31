@@ -1008,7 +1008,8 @@ func (c *Conn) Exec(sql string, arguments ...interface{}) (commandTag CommandTag
 		}
 	}()
 
-	if err = c.sendQuery(sql, arguments...); err != nil {
+	err = c.sendQuery(sql, arguments...)
+	if err != nil {
 		fmt.Println("Exec Returning")
 		return
 	}
