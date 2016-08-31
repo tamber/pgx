@@ -401,8 +401,12 @@ func (p *ConnPool) Exec(sql string, arguments ...interface{}) (commandTag Comman
 		return
 	}
 	defer p.Release(c)
-
-	return c.Exec(sql, arguments...)
+	p.logger.Info("calling exec")
+	// fmt.Println("calling exec")
+	commandTag, err = c.Exec(sql, arguments...)
+	p.logger.Info("returning from exec")
+	// fmt.Println("returning from exec")
+	return
 }
 
 // Query acquires a connection and delegates the call to that connection. When
