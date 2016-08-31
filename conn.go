@@ -1010,7 +1010,6 @@ func (c *Conn) Exec(sql string, arguments ...interface{}) (commandTag CommandTag
 
 	err = c.sendQuery(sql, arguments...)
 	if err != nil {
-		fmt.Println("Exec Returning With query Error", err)
 		return
 	}
 
@@ -1025,23 +1024,23 @@ func (c *Conn) Exec(sql string, arguments ...interface{}) (commandTag CommandTag
 
 		switch t {
 		case readyForQuery:
-			fmt.Println("readyForQuery")
+			// fmt.Println("readyForQuery")
 			c.rxReadyForQuery(r)
 			return commandTag, softErr
 		case rowDescription:
-			fmt.Println("rowDescription")
+			// fmt.Println("rowDescription")
 		case dataRow:
-			fmt.Println("dataRow")
+			// fmt.Println("dataRow")
 		case bindComplete:
-			fmt.Println("bindComplete")
+			// fmt.Println("bindComplete")
 		case noData:
-			fmt.Println("noData")
+			// fmt.Println("noData")
 			// return commandTag, softErr
 		case commandComplete:
-			fmt.Println("commandComplete")
+			// fmt.Println("commandComplete")
 			commandTag = CommandTag(r.readCString())
 		default:
-			fmt.Println("default")
+			// fmt.Println("default")
 			if e := c.processContextFreeMsg(t, r); e != nil && softErr == nil {
 				softErr = e
 			}
