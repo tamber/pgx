@@ -693,6 +693,7 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 			return ps, nil
 		case noData:
 			fmt.Println("noData")
+			return ps, nil
 		case readyForQuery:
 			fmt.Println("readyForQuery")
 			c.rxReadyForQuery(r)
@@ -1019,13 +1020,15 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 	if len(ps.ParameterOids) != len(arguments) {
 		return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
 	}
-
+	fmt.Println("sendPreparedQuery")
 	// bind
 	wbuf := newWriteBuf(c, 'B')
 	wbuf.WriteByte(0)
 	wbuf.WriteCString(ps.Name)
 
+	fmt.Println("sendPreparedQuery: write formats len")
 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
+	fmt.Println("sendPreparedQuery: write formats")
 	for i, oid := range ps.ParameterOids {
 		switch arg := arguments[i].(type) {
 		case Encoder:
@@ -1041,32 +1044,38 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 			}
 		}
 	}
-
+	fmt.Println("sendPreparedQuery: write args len")
 	wbuf.WriteInt16(int16(len(arguments)))
+	fmt.Println("sendPreparedQuery: write args")
 	for i, oid := range ps.ParameterOids {
 		if err := Encode(wbuf, oid, arguments[i]); err != nil {
 			return err
 		}
 	}
+	fmt.Println("Write field descriptions")
 
 	wbuf.WriteInt16(int16(len(ps.FieldDescriptions)))
 	for _, fd := range ps.FieldDescriptions {
 		wbuf.WriteInt16(fd.FormatCode)
 	}
+	fmt.Println("sendPreparedQuery: execute")
 
 	// execute
 	wbuf.startMsg('E')
 	wbuf.WriteByte(0)
 	wbuf.WriteInt32(0)
-
+	fmt.Println("sendPreparedQuery: sync")
 	// sync
 	wbuf.startMsg('S')
 	wbuf.closeMsg()
+
+	fmt.Println("sendPreparedQuery: write")
 
 	_, err = c.conn.Write(wbuf.buf)
 	if err != nil {
 		c.die(err)
 	}
+	fmt.Println("sendPreparedQuery: return")
 
 	return err
 }
