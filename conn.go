@@ -645,20 +645,20 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 	// // sync
 	// wbuf.startMsg('S')
 	// wbuf.closeMsg()
-	fmt.Println("pre flush")
+	// fmt.Println("pre flush")
 
 	// flush
 	wbuf.startMsg('H')
 	wbuf.closeMsg()
 
-	fmt.Println("post flush")
+	// fmt.Println("post flush")
 
 	_, err = c.conn.Write(wbuf.buf)
 	if err != nil {
 		c.die(err)
 		return nil, err
 	}
-	fmt.Println("post write")
+	// fmt.Println("post write")
 
 	ps = &PreparedStatement{Name: name, SQL: sql}
 
@@ -893,9 +893,9 @@ func (c *Conn) sendQuery(sql string, arguments ...interface{}) (err error) {
 }
 
 func (c *Conn) sendSimpleQuery(sql string, args ...interface{}) error {
-	fmt.Println("sendSimpleQuery")
+	// fmt.Println("sendSimpleQuery")
 	if len(args) == 0 {
-		fmt.Println("sendSimpleQuery: sql string only")
+		// fmt.Println("sendSimpleQuery: sql string only")
 		wbuf := newWriteBuf(c, 'Q')
 		wbuf.WriteCString(sql)
 		wbuf.closeMsg()
@@ -908,12 +908,12 @@ func (c *Conn) sendSimpleQuery(sql string, args ...interface{}) error {
 
 		return nil
 	}
-	fmt.Println("sendSimpleQuery: calling prepare")
+	// fmt.Println("sendSimpleQuery: calling prepare")
 	ps, err := c.Prepare("", sql)
 	if err != nil {
 		return err
 	}
-	fmt.Println("sendSimpleQuery: sending prepared query")
+	// fmt.Println("sendSimpleQuery: sending prepared query")
 	return c.sendPreparedQuery(ps, args...)
 }
 
@@ -921,15 +921,15 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 	if len(ps.ParameterOids) != len(arguments) {
 		return fmt.Errorf("Prepared statement \"%v\" requires %d parameters, but %d were provided", ps.Name, len(ps.ParameterOids), len(arguments))
 	}
-	fmt.Println("sendPreparedQuery")
+	// fmt.Println("sendPreparedQuery")
 	// bind
 	wbuf := newWriteBuf(c, 'B')
 	wbuf.WriteByte(0)
 	wbuf.WriteCString(ps.Name)
 
-	fmt.Println("sendPreparedQuery: write formats len")
+	// fmt.Println("sendPreparedQuery: write formats len")
 	wbuf.WriteInt16(int16(len(ps.ParameterOids)))
-	fmt.Println("sendPreparedQuery: write formats")
+	// fmt.Println("sendPreparedQuery: write formats")
 	for i, oid := range ps.ParameterOids {
 		switch arg := arguments[i].(type) {
 		case Encoder:
@@ -945,38 +945,38 @@ func (c *Conn) sendPreparedQuery(ps *PreparedStatement, arguments ...interface{}
 			}
 		}
 	}
-	fmt.Println("sendPreparedQuery: write args len")
+	//fmt.Println("sendPreparedQuery: write args len")
 	wbuf.WriteInt16(int16(len(arguments)))
-	fmt.Println("sendPreparedQuery: write args")
+	//fmt.Println("sendPreparedQuery: write args")
 	for i, oid := range ps.ParameterOids {
 		if err := Encode(wbuf, oid, arguments[i]); err != nil {
 			return err
 		}
 	}
-	fmt.Println("Write field descriptions")
+	//fmt.Println("Write field descriptions")
 
 	wbuf.WriteInt16(int16(len(ps.FieldDescriptions)))
 	for _, fd := range ps.FieldDescriptions {
 		wbuf.WriteInt16(fd.FormatCode)
 	}
-	fmt.Println("sendPreparedQuery: execute")
+	//fmt.Println("sendPreparedQuery: execute")
 
 	// execute
 	wbuf.startMsg('E')
 	wbuf.WriteByte(0)
 	wbuf.WriteInt32(0)
-	fmt.Println("sendPreparedQuery: sync")
+	//fmt.Println("sendPreparedQuery: sync")
 	// sync
 	wbuf.startMsg('S')
 	wbuf.closeMsg()
 
-	fmt.Println("sendPreparedQuery: write")
+	//fmt.Println("sendPreparedQuery: write")
 
 	_, err = c.conn.Write(wbuf.buf)
 	if err != nil {
 		c.die(err)
 	}
-	fmt.Println("sendPreparedQuery: return")
+	//fmt.Println("sendPreparedQuery: return")
 
 	return err
 }
@@ -1010,12 +1010,11 @@ func (c *Conn) Exec(sql string, arguments ...interface{}) (commandTag CommandTag
 
 	err = c.sendQuery(sql, arguments...)
 	if err != nil {
-		fmt.Println("Exec Returning")
+		fmt.Println("Exec Returning With query Error", err)
 		return
 	}
 
 	var softErr error
-	fmt.Println("Exec Not Returning:", err)
 	for {
 		var t byte
 		var r *msgReader
@@ -1026,14 +1025,23 @@ func (c *Conn) Exec(sql string, arguments ...interface{}) (commandTag CommandTag
 
 		switch t {
 		case readyForQuery:
+			fmt.Println("readyForQuery")
 			c.rxReadyForQuery(r)
 			return commandTag, softErr
 		case rowDescription:
+			fmt.Println("rowDescription")
 		case dataRow:
+			fmt.Println("dataRow")
 		case bindComplete:
+			fmt.Println("bindComplete")
+		case noData:
+			fmt.Println("noData")
+			// return commandTag, softErr
 		case commandComplete:
+			fmt.Println("commandComplete")
 			commandTag = CommandTag(r.readCString())
 		default:
+			fmt.Println("default")
 			if e := c.processContextFreeMsg(t, r); e != nil && softErr == nil {
 				softErr = e
 			}
