@@ -674,16 +674,16 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 
 		switch t {
 		case parseComplete:
-			fmt.Println("parseComplete")
+			// fmt.Println("parseComplete")
 		case parameterDescription:
-			fmt.Println("parameterDescription")
+			// fmt.Println("parameterDescription")
 			ps.ParameterOids = c.rxParameterDescription(r)
 
 			if len(ps.ParameterOids) > 65535 && softErr == nil {
 				softErr = fmt.Errorf("PostgreSQL supports maximum of 65535 parameters, received %d", len(ps.ParameterOids))
 			}
 		case rowDescription:
-			fmt.Println("rowDescription")
+			// fmt.Println("rowDescription")
 			ps.FieldDescriptions = c.rxRowDescription(r)
 			for i := range ps.FieldDescriptions {
 				t, _ := c.PgTypes[ps.FieldDescriptions[i].DataType]
@@ -692,10 +692,9 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 			}
 			return ps, nil
 		case noData:
-			fmt.Println("noData")
 			return ps, nil
 		case readyForQuery:
-			fmt.Println("readyForQuery")
+			// fmt.Println("readyForQuery")
 			c.rxReadyForQuery(r)
 
 			if softErr == nil {
@@ -704,10 +703,10 @@ func (c *Conn) PrepareEx(name, sql string, opts *PrepareExOptions) (ps *Prepared
 
 			return ps, softErr
 		case closeComplete:
-			fmt.Println("closeComplete")
+			// fmt.Println("closeComplete")
 			return ps, nil
 		default:
-			fmt.Println("default")
+			// fmt.Println("default")
 			if e := c.processContextFreeMsg(t, r); e != nil && softErr == nil {
 				softErr = e
 			}
