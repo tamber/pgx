@@ -146,6 +146,22 @@ func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 	return
 }
 
+// Changes maxConnections in connection pool. Release checks maxConnections before
+// re-adding to pool and acquire checks before creating new connections, so connection
+// pool size will change prodecurally.
+func (p *ConnPool) SetMaxConnections(maxConnections int) (err error) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	p.maxConnections = maxConnections
+	if p.maxConnections == 0 {
+		p.maxConnections = 5
+	}
+	if p.maxConnections < 1 {
+		return errors.New("MaxConnections must be at least 1")
+	}
+	return nil
+}
+
 // Acquire takes exclusive use of a connection until it is released.
 func (p *ConnPool) Acquire() (*Conn, error) {
 	p.cond.L.Lock()
@@ -233,8 +249,13 @@ func (p *ConnPool) Release(conn *Conn) {
 	}
 
 	if conn.IsAlive() {
-		p.availableConnections = append(p.availableConnections, conn)
-	} else {
+		if len(p.availableConnections) < p.maxConnections {
+			p.availableConnections = append(p.availableConnections, conn)
+		} else {
+			conn.Close()
+		}
+	}
+	if !conn.IsAlive() { // doa or closed in above if statement
 		ac := p.allConnections
 		for i, c := range ac {
 			if conn == c {
@@ -401,11 +422,7 @@ func (p *ConnPool) Exec(sql string, arguments ...interface{}) (commandTag Comman
 		return
 	}
 	defer p.Release(c)
-	p.logger.Info("calling exec")
-	// fmt.Println("calling exec")
 	commandTag, err = c.Exec(sql, arguments...)
-	p.logger.Info("returning from exec")
-	// fmt.Println("returning from exec")
 	return
 }
 
