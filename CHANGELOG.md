@@ -2,15 +2,40 @@
 
 ## Fixes
 
-* Fix *ConnPool.Deallocate() not deleting prepared statement from map
+* Oid underlying type changed to uint32, previously it was incorrectly int32 (Manni Wood)
 
 ## Features
 
+* Add xid type support (Manni Wood)
+* Add cid type support (Manni Wood)
+* Add tid type support (Manni Wood)
+* Add "char" type support (Manni Wood)
+* Add NullOid type (Manni Wood)
+* Add json/jsonb binary support to allow use with CopyTo
+* Add named error ErrAcquireTimeout (Alexander Staubo)
+
+## Compatibility
+
+* jsonb now defaults to binary format. This means passing a []byte to a jsonb column will no longer work.
+
+# 2.9.0 (August 26, 2016)
+
+## Fixes
+
+* Fix *ConnPool.Deallocate() not deleting prepared statement from map
+* Fix stdlib not logging unprepared query SQL (Krzysztof Dryś)
+* Fix Rows.Values() with varchar binary format
+* Concurrent ConnPool.Acquire calls with Dialer timeouts now timeout in the expected amount of time (Konstantin Dzreev)
+
+## Features
+
+* Add CopyTo
 * Add PrepareEx
 * Add basic record to []interface{} decoding
 * Encode and decode between all Go and PostgreSQL integer types with bounds checking
 * Decode inet/cidr to net.IP
 * Encode/decode [][]byte to/from bytea[]
+* Encode/decode named types whose underlying types are string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64
 
 ## Performance
 

@@ -561,6 +561,13 @@ func TestNullX(t *testing.T) {
 		s   pgx.NullString
 		i16 pgx.NullInt16
 		i32 pgx.NullInt32
+		c   pgx.NullChar
+		a   pgx.NullAclItem
+		n   pgx.NullName
+		oid pgx.NullOid
+		xid pgx.NullXid
+		cid pgx.NullCid
+		tid pgx.NullTid
 		i64 pgx.NullInt64
 		f32 pgx.NullFloat32
 		f64 pgx.NullFloat64
@@ -582,6 +589,27 @@ func TestNullX(t *testing.T) {
 		{"select $1::int2", []interface{}{pgx.NullInt16{Int16: 1, Valid: false}}, []interface{}{&actual.i16}, allTypes{i16: pgx.NullInt16{Int16: 0, Valid: false}}},
 		{"select $1::int4", []interface{}{pgx.NullInt32{Int32: 1, Valid: true}}, []interface{}{&actual.i32}, allTypes{i32: pgx.NullInt32{Int32: 1, Valid: true}}},
 		{"select $1::int4", []interface{}{pgx.NullInt32{Int32: 1, Valid: false}}, []interface{}{&actual.i32}, allTypes{i32: pgx.NullInt32{Int32: 0, Valid: false}}},
+		{"select $1::oid", []interface{}{pgx.NullOid{Oid: 1, Valid: true}}, []interface{}{&actual.oid}, allTypes{oid: pgx.NullOid{Oid: 1, Valid: true}}},
+		{"select $1::oid", []interface{}{pgx.NullOid{Oid: 1, Valid: false}}, []interface{}{&actual.oid}, allTypes{oid: pgx.NullOid{Oid: 0, Valid: false}}},
+		{"select $1::oid", []interface{}{pgx.NullOid{Oid: 4294967295, Valid: true}}, []interface{}{&actual.oid}, allTypes{oid: pgx.NullOid{Oid: 4294967295, Valid: true}}},
+		{"select $1::xid", []interface{}{pgx.NullXid{Xid: 1, Valid: true}}, []interface{}{&actual.xid}, allTypes{xid: pgx.NullXid{Xid: 1, Valid: true}}},
+		{"select $1::xid", []interface{}{pgx.NullXid{Xid: 1, Valid: false}}, []interface{}{&actual.xid}, allTypes{xid: pgx.NullXid{Xid: 0, Valid: false}}},
+		{"select $1::xid", []interface{}{pgx.NullXid{Xid: 4294967295, Valid: true}}, []interface{}{&actual.xid}, allTypes{xid: pgx.NullXid{Xid: 4294967295, Valid: true}}},
+		{"select $1::\"char\"", []interface{}{pgx.NullChar{Char: 1, Valid: true}}, []interface{}{&actual.c}, allTypes{c: pgx.NullChar{Char: 1, Valid: true}}},
+		{"select $1::\"char\"", []interface{}{pgx.NullChar{Char: 1, Valid: false}}, []interface{}{&actual.c}, allTypes{c: pgx.NullChar{Char: 0, Valid: false}}},
+		{"select $1::\"char\"", []interface{}{pgx.NullChar{Char: 255, Valid: true}}, []interface{}{&actual.c}, allTypes{c: pgx.NullChar{Char: 255, Valid: true}}},
+		{"select $1::name", []interface{}{pgx.NullName{Name: "foo", Valid: true}}, []interface{}{&actual.n}, allTypes{n: pgx.NullName{Name: "foo", Valid: true}}},
+		{"select $1::name", []interface{}{pgx.NullName{Name: "foo", Valid: false}}, []interface{}{&actual.n}, allTypes{n: pgx.NullName{Name: "", Valid: false}}},
+		{"select $1::aclitem", []interface{}{pgx.NullAclItem{AclItem: "postgres=arwdDxt/postgres", Valid: true}}, []interface{}{&actual.a}, allTypes{a: pgx.NullAclItem{AclItem: "postgres=arwdDxt/postgres", Valid: true}}},
+		{"select $1::aclitem", []interface{}{pgx.NullAclItem{AclItem: "postgres=arwdDxt/postgres", Valid: false}}, []interface{}{&actual.a}, allTypes{a: pgx.NullAclItem{AclItem: "", Valid: false}}},
+		// A tricky (and valid) aclitem can still be used, especially with Go's useful backticks
+		{"select $1::aclitem", []interface{}{pgx.NullAclItem{AclItem: `postgres=arwdDxt/" tricky, ' } "" \ test user "`, Valid: true}}, []interface{}{&actual.a}, allTypes{a: pgx.NullAclItem{AclItem: `postgres=arwdDxt/" tricky, ' } "" \ test user "`, Valid: true}}},
+		{"select $1::cid", []interface{}{pgx.NullCid{Cid: 1, Valid: true}}, []interface{}{&actual.cid}, allTypes{cid: pgx.NullCid{Cid: 1, Valid: true}}},
+		{"select $1::cid", []interface{}{pgx.NullCid{Cid: 1, Valid: false}}, []interface{}{&actual.cid}, allTypes{cid: pgx.NullCid{Cid: 0, Valid: false}}},
+		{"select $1::cid", []interface{}{pgx.NullCid{Cid: 4294967295, Valid: true}}, []interface{}{&actual.cid}, allTypes{cid: pgx.NullCid{Cid: 4294967295, Valid: true}}},
+		{"select $1::tid", []interface{}{pgx.NullTid{Tid: pgx.Tid{BlockNumber: 1, OffsetNumber: 1}, Valid: true}}, []interface{}{&actual.tid}, allTypes{tid: pgx.NullTid{Tid: pgx.Tid{BlockNumber: 1, OffsetNumber: 1}, Valid: true}}},
+		{"select $1::tid", []interface{}{pgx.NullTid{Tid: pgx.Tid{BlockNumber: 1, OffsetNumber: 1}, Valid: false}}, []interface{}{&actual.tid}, allTypes{tid: pgx.NullTid{Tid: pgx.Tid{BlockNumber: 0, OffsetNumber: 0}, Valid: false}}},
+		{"select $1::tid", []interface{}{pgx.NullTid{Tid: pgx.Tid{BlockNumber: 4294967295, OffsetNumber: 65535}, Valid: true}}, []interface{}{&actual.tid}, allTypes{tid: pgx.NullTid{Tid: pgx.Tid{BlockNumber: 4294967295, OffsetNumber: 65535}, Valid: true}}},
 		{"select $1::int8", []interface{}{pgx.NullInt64{Int64: 1, Valid: true}}, []interface{}{&actual.i64}, allTypes{i64: pgx.NullInt64{Int64: 1, Valid: true}}},
 		{"select $1::int8", []interface{}{pgx.NullInt64{Int64: 1, Valid: false}}, []interface{}{&actual.i64}, allTypes{i64: pgx.NullInt64{Int64: 0, Valid: false}}},
 		{"select $1::float4", []interface{}{pgx.NullFloat32{Float32: 1.23, Valid: true}}, []interface{}{&actual.f32}, allTypes{f32: pgx.NullFloat32{Float32: 1.23, Valid: true}}},
@@ -630,7 +658,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::bool[]", []bool{true, false, true}, &[]bool{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]bool))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]bool))) {
 					t.Errorf("failed to encode bool[]")
 				}
 			},
@@ -638,7 +666,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::smallint[]", []int16{2, 4, 484, 32767}, &[]int16{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]int16))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]int16))) {
 					t.Errorf("failed to encode smallint[]")
 				}
 			},
@@ -646,7 +674,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::smallint[]", []uint16{2, 4, 484, 32767}, &[]uint16{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]uint16))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]uint16))) {
 					t.Errorf("failed to encode smallint[]")
 				}
 			},
@@ -654,7 +682,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::int[]", []int32{2, 4, 484}, &[]int32{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]int32))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]int32))) {
 					t.Errorf("failed to encode int[]")
 				}
 			},
@@ -662,7 +690,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::int[]", []uint32{2, 4, 484, 2147483647}, &[]uint32{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]uint32))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]uint32))) {
 					t.Errorf("failed to encode int[]")
 				}
 			},
@@ -670,7 +698,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::bigint[]", []int64{2, 4, 484, 9223372036854775807}, &[]int64{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]int64))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]int64))) {
 					t.Errorf("failed to encode bigint[]")
 				}
 			},
@@ -678,7 +706,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::bigint[]", []uint64{2, 4, 484, 9223372036854775807}, &[]uint64{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]uint64))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]uint64))) {
 					t.Errorf("failed to encode bigint[]")
 				}
 			},
@@ -686,7 +714,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::text[]", []string{"it's", "over", "9000!"}, &[]string{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]string))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]string))) {
 					t.Errorf("failed to encode text[]")
 				}
 			},
@@ -694,7 +722,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::timestamp[]", []time.Time{time.Unix(323232, 0), time.Unix(3239949334, 00)}, &[]time.Time{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]time.Time))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]time.Time))) {
 					t.Errorf("failed to encode time.Time[] to timestamp[]")
 				}
 			},
@@ -702,7 +730,7 @@ func TestArrayDecoding(t *testing.T) {
 		{
 			"select $1::timestamptz[]", []time.Time{time.Unix(323232, 0), time.Unix(3239949334, 00)}, &[]time.Time{},
 			func(t *testing.T, query, scan interface{}) {
-				if reflect.DeepEqual(query, *(scan.(*[]time.Time))) == false {
+				if !reflect.DeepEqual(query, *(scan.(*[]time.Time))) {
 					t.Errorf("failed to encode time.Time[] to timestamptz[]")
 				}
 			},
@@ -718,7 +746,7 @@ func TestArrayDecoding(t *testing.T) {
 				for i := range queryBytesSliceSlice {
 					qb := queryBytesSliceSlice[i]
 					sb := scanBytesSliceSlice[i]
-					if bytes.Compare(qb, sb) != 0 {
+					if !bytes.Equal(qb, sb) {
 						t.Errorf("failed to encode byte[][] to bytea[]: expected %v to equal %v", qb, sb)
 					}
 				}
@@ -960,6 +988,110 @@ func TestPointerPointerNonZero(t *testing.T) {
 	}
 }
 
+func TestEncodeTypeRename(t *testing.T) {
+	t.Parallel()
+
+	conn := mustConnect(t, *defaultConnConfig)
+	defer closeConn(t, conn)
+
+	type _int int
+	inInt := _int(3)
+	var outInt _int
+
+	type _int8 int8
+	inInt8 := _int8(3)
+	var outInt8 _int8
+
+	type _int16 int16
+	inInt16 := _int16(3)
+	var outInt16 _int16
+
+	type _int32 int32
+	inInt32 := _int32(4)
+	var outInt32 _int32
+
+	type _int64 int64
+	inInt64 := _int64(5)
+	var outInt64 _int64
+
+	type _uint uint
+	inUint := _uint(6)
+	var outUint _uint
+
+	type _uint8 uint8
+	inUint8 := _uint8(7)
+	var outUint8 _uint8
+
+	type _uint16 uint16
+	inUint16 := _uint16(8)
+	var outUint16 _uint16
+
+	type _uint32 uint32
+	inUint32 := _uint32(9)
+	var outUint32 _uint32
+
+	type _uint64 uint64
+	inUint64 := _uint64(10)
+	var outUint64 _uint64
+
+	type _string string
+	inString := _string("foo")
+	var outString _string
+
+	err := conn.QueryRow("select $1::int, $2::int, $3::int2, $4::int4, $5::int8, $6::int, $7::int, $8::int, $9::int, $10::int, $11::text",
+		inInt, inInt8, inInt16, inInt32, inInt64, inUint, inUint8, inUint16, inUint32, inUint64, inString,
+	).Scan(&outInt, &outInt8, &outInt16, &outInt32, &outInt64, &outUint, &outUint8, &outUint16, &outUint32, &outUint64, &outString)
+	if err != nil {
+		t.Fatalf("Failed with type rename: %v", err)
+	}
+
+	if inInt != outInt {
+		t.Errorf("int rename: expected %v, got %v", inInt, outInt)
+	}
+
+	if inInt8 != outInt8 {
+		t.Errorf("int8 rename: expected %v, got %v", inInt8, outInt8)
+	}
+
+	if inInt16 != outInt16 {
+		t.Errorf("int16 rename: expected %v, got %v", inInt16, outInt16)
+	}
+
+	if inInt32 != outInt32 {
+		t.Errorf("int32 rename: expected %v, got %v", inInt32, outInt32)
+	}
+
+	if inInt64 != outInt64 {
+		t.Errorf("int64 rename: expected %v, got %v", inInt64, outInt64)
+	}
+
+	if inUint != outUint {
+		t.Errorf("uint rename: expected %v, got %v", inUint, outUint)
+	}
+
+	if inUint8 != outUint8 {
+		t.Errorf("uint8 rename: expected %v, got %v", inUint8, outUint8)
+	}
+
+	if inUint16 != outUint16 {
+		t.Errorf("uint16 rename: expected %v, got %v", inUint16, outUint16)
+	}
+
+	if inUint32 != outUint32 {
+		t.Errorf("uint32 rename: expected %v, got %v", inUint32, outUint32)
+	}
+
+	if inUint64 != outUint64 {
+		t.Errorf("uint64 rename: expected %v, got %v", inUint64, outUint64)
+	}
+
+	if inString != outString {
+		t.Errorf("string rename: expected %v, got %v", inString, outString)
+	}
+
+	ensureConnValid(t, conn)
+}
+
 func TestRowDecode(t *testing.T) {
 	t.Parallel()
 
@@ -971,11 +1103,11 @@ func TestRowDecode(t *testing.T) {
 		expected []interface{}
 	}{
 		{
-			"select row(1, 'cat', '2015-01-01 08:12:42'::timestamptz)",
+			"select row(1, 'cat', '2015-01-01 08:12:42-00'::timestamptz)",
 			[]interface{}{
 				int32(1),
 				"cat",
-				time.Date(2015, 1, 1, 8, 12, 42, 0, time.Local),
+				time.Date(2015, 1, 1, 8, 12, 42, 0, time.UTC).Local(),
 			},
 		},
 	}
