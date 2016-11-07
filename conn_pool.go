@@ -129,8 +129,8 @@ func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 	if p.logger == nil {
 		p.logLevel = LogLevelNone
 	}
-	p.pgsql_af_inet = nil
-	p.pgsql_af_inet6 = nil
+	p.pgsqlAfInet = nil
+	p.pgsqlAfInet6 = nil
 
 	// TODO: Try closing all active connections.
 	// Wait until all connections are released
@@ -281,7 +281,6 @@ func (p *ConnPool) Release(conn *Conn) {
 	}
 
 	if conn.IsAlive() {
-<<<<<<< HEAD
 		if len(p.availableConnections) < p.maxConnections {
 			p.availableConnections = append(p.availableConnections, conn)
 		} else {
@@ -297,11 +296,6 @@ func (p *ConnPool) Release(conn *Conn) {
 				break
 			}
 		}
-=======
-		p.availableConnections = append(p.availableConnections, conn)
-	} else {
-		p.removeFromAllConnections(conn)
->>>>>>> 2a0504599e9e20e2a1e9413d7cff75e7dc039e8f
 	}
 	p.cond.L.Unlock()
 	p.cond.Signal()
@@ -502,8 +496,7 @@ func (p *ConnPool) Exec(sql string, arguments ...interface{}) (commandTag Comman
 		return
 	}
 	defer p.Release(c)
-	commandTag, err = c.Exec(sql, arguments...)
-	return
+	return c.Exec(sql, arguments...)
 }
 
 // Query acquires a connection and delegates the call to that connection. When
