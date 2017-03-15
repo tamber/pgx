@@ -305,6 +305,12 @@ func (c *Conn) connect(config ConnConfig, network, address string, tlsConfig *tl
 				c.log(LogLevelInfo, "Connection established")
 			}
 
+			// Replication connections can't execute the queries to
+			// populate the c.PgTypes and c.pgsqlAfInet
+			if _, ok := msg.options["replication"]; ok {
+				return nil
+			}
+
 			if c.PgTypes == nil {
 				err = c.loadPgTypes()
 				if err != nil {
@@ -427,7 +433,7 @@ func ParseURI(uri string) (ConnConfig, error) {
 	}
 
 	ignoreKeys := map[string]struct{}{
-		"sslmode": struct{}{},
+		"sslmode": {},
 	}
 
 	cp.RuntimeParams = make(map[string]string)
