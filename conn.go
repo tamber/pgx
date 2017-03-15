@@ -1290,6 +1290,7 @@ func (c *Conn) log(lvl int, msg string, ctx ...interface{}) {
 	if c.Pid != 0 {
 		ctx = append(ctx, "pid", c.Pid)
 	}
+	ctx = append(ctx, "remote", c.conn.RemoteAddr())
 
 	switch lvl {
 	case LogLevelTrace:
