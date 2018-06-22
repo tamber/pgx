@@ -104,6 +104,10 @@ func (p *ConnPool) GetConfig() ConnConfig {
 	return p.config
 }
 
+func (p *ConnPool) GetRowsAfterClose() func(rows *Rows) {
+	return p.rowsAfterClose
+}
+
 // NewConfig resets the ConnPool with a new configuration, similar to NewConnPool
 func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 	p.cond.L.Lock()
