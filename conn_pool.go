@@ -170,7 +170,7 @@ func (p *ConnPool) NewConfig(config ConnPoolConfig) (err error) {
 
 // Changes maxConnections in connection pool. Release checks maxConnections before
 // re-adding to pool and acquire checks before creating new connections, so connection
-// pool size will change prodecurally.
+// pool size will change procedurally.
 func (p *ConnPool) SetMaxConnections(maxConnections int) (err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -182,6 +182,10 @@ func (p *ConnPool) SetMaxConnections(maxConnections int) (err error) {
 		return errors.New("MaxConnections must be at least 1")
 	}
 	return nil
+}
+
+func (p *ConnPool) SetAcquireTimeout(timeout time.Duration) {
+	p.acquireTimeout = timeout
 }
 
 // Acquire takes exclusive use of a connection until it is released.
