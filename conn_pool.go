@@ -37,9 +37,10 @@ type ConnPool struct {
 }
 
 type ConnPoolStat struct {
-	MaxConnections       int // max simultaneous connections to use
-	CurrentConnections   int // current live connections
-	AvailableConnections int // unused live connections
+	MaxConnections        int // max simultaneous connections to use
+	CurrentConnections    int // current live connections
+	AvailableConnections  int // unused live connections
+	InProgressConnections int // connections in progress
 }
 
 // ErrAcquireTimeout occurs when an attempt to acquire a connection times out.
@@ -387,6 +388,7 @@ func (p *ConnPool) Stat() (s ConnPoolStat) {
 	s.MaxConnections = p.maxConnections
 	s.CurrentConnections = len(p.allConnections)
 	s.AvailableConnections = len(p.availableConnections)
+	s.InProgressConnections = p.inProgressConnects
 	return
 }
 
